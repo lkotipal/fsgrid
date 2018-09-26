@@ -818,6 +818,36 @@ template <typename T, int stencil> class FsGrid {
          return MPI_Allreduce(sendbuf, recvbuf, count, datatype, op, comm3d);
       }
 
+
+      //! Helper function: given a global cellID, calculate the global cell coordinate from it.
+      // This is then used do determine the task responsible for this cell, and the
+      // local cell index in it.
+      std::array<int, 3> globalIDtoCellCoord(GlobalID id) {
+
+         // Transform globalID to global cell coordinate
+         std::array<int, 3> cell;
+
+         assert(id >= 0);
+         assert(id < globalSize[0] * globalSize[1] * globalSize[2]);
+
+         int stride=1;
+         for(int i=0; i<3; i++) {
+            cell[i] = (id / stride) % globalSize[i];
+            stride *= globalSize[i];
+         }
+
+         return cell;
+      }
+
+      // Helper function to return Global ID from cell coordinates.
+      GlobalID cellCoordtoGlobalID(std::array<int,3> cellCoord) {
+
+         GlobalID id = cellCoord[0] + cellCoord[1] * globalSize[0] + cellCoord[2] * globalSize[1] * globalSize[0];
+         return id;
+      
+      }
+
+   
    private:
       //! MPI Cartesian communicator used in this grid
       MPI_Comm comm3d;
@@ -851,26 +881,6 @@ template <typename T, int stencil> class FsGrid {
 
       //! Actual storage of field data
       std::vector<T> data;
-
-      //! Helper function: given a global cellID, calculate the global cell coordinate from it.
-      // This is then used do determine the task responsible for this cell, and the
-      // local cell index in it.
-      std::array<int, 3> globalIDtoCellCoord(GlobalID id) {
-
-         // Transform globalID to global cell coordinate
-         std::array<int, 3> cell;
-
-         assert(id >= 0);
-         assert(id < globalSize[0] * globalSize[1] * globalSize[2]);
-
-         int stride=1;
-         for(int i=0; i<3; i++) {
-            cell[i] = (id / stride) % globalSize[i];
-            stride *= globalSize[i];
-         }
-
-         return cell;
-      }
 
       //! Helper function to optimize decomposition of this grid over the given number of tasks
 
