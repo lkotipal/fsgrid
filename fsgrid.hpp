@@ -408,7 +408,7 @@ template <typename T, int stencil> class FsGrid {
        *
        * \param cellsToCouple How many cells are going to be coupled
        */
-      void setupForGridCoupling(int cellsToCouple) {
+      void setupForGridCoupling() {
          int status;
          // Make sure we have sufficient buffer space to store our mpi
          // requests. Here only for receives, sends are done with blocking routine.
@@ -838,15 +838,6 @@ template <typename T, int stencil> class FsGrid {
 
          return cell;
       }
-
-      // Helper function to return Global ID from cell coordinates.
-      GlobalID cellCoordtoGlobalID(std::array<int,3> cellCoord) {
-
-         GlobalID id = cellCoord[0] + cellCoord[1] * globalSize[0] + cellCoord[2] * globalSize[1] * globalSize[0];
-         return id;
-      
-      }
-
    
    private:
       //! MPI Cartesian communicator used in this grid
