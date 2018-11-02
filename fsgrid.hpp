@@ -44,7 +44,7 @@ template <typename T, int stencil> class FsGrid {
        * \param MPI_Comm The MPI communicator this grid should use.
        * \param isPeriodic An array specifying, for each dimension, whether it is to be treated as periodic.
        */
-   FsGrid(std::array<int32_t,3> globalSize, MPI_Comm parent_comm, std::array<bool,3> isPeriodic, int tagIdIn = 0)
+   FsGrid(std::array<int32_t,3> globalSize, MPI_Comm parent_comm, std::array<bool,3> isPeriodic, int64_t tagIdIn = 0)
             : globalSize(globalSize) {
          int status;
          int size;
@@ -852,7 +852,7 @@ template <typename T, int stencil> class FsGrid {
       int rank; //!< This task's rank in the communicator
       std::vector<MPI_Request> requests;
       uint numRequests;
-      int tagId;
+      int64_t tagId;
    
       std::vector<int> externalRank; //!< MPI rank that each cell is being communicated to externally
 
