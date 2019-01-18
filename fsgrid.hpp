@@ -431,7 +431,6 @@ template <typename T, int stencil> class FsGrid {
                   LocalID thisCell = LocalIDForCoords(x,y,z);
                   assert(numRequests < requests.size());                  
                   assert(thisCell < externalRank.size());
-                  if(debug) std::cout << thisCell + tagId << ", " << externalRank[thisCell] << std::endl;
                   status = MPI_Irecv(&externalRank[thisCell], 1, MPI_INT, MPI_ANY_SOURCE, thisCell + tagId, comm3d,
                         &requests[numRequests++]);
                   if(status != MPI_SUCCESS) {
@@ -456,7 +455,6 @@ template <typename T, int stencil> class FsGrid {
          // Determine Task and localID that this cell belongs to
          std::pair<int,LocalID> TaskLid = getTaskForGlobalID(id);
          int status;
-         if(debug) std::cout << TaskLid.first << ", " << TaskLid.second + tagId << std::endl;
          status = MPI_Send(&cellRank, 1, MPI_INT, TaskLid.first, TaskLid.second + tagId, comm3d);
          if(status != MPI_SUCCESS) {
             std::cerr << "Error setting up MPI Isend in FsGrid::setGridCoupling" << std::endl;
