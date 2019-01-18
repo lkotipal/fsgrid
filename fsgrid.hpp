@@ -410,7 +410,7 @@ template <typename T, int stencil> class FsGrid {
        *
        * \param cellsToCouple How many cells are going to be coupled
        */
-      void setupForGridCoupling(bool debug) {
+      void setupForGridCoupling() {
          int status;
          // Make sure we have sufficient buffer space to store our mpi
          // requests. Here only for receives, sends are done with blocking routine.
@@ -452,7 +452,7 @@ template <typename T, int stencil> class FsGrid {
        * \param id Global cell ID to be addressed
        * \iparam cellRank Rank that owns the cell in the other external grid.
        */
-   void setGridCoupling(GlobalID id, int cellRank, bool debug) {
+   void setGridCoupling(GlobalID id, int cellRank) {
          // Determine Task and localID that this cell belongs to
          std::pair<int,LocalID> TaskLid = getTaskForGlobalID(id);
          int status;
