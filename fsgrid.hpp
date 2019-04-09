@@ -27,6 +27,22 @@
 #include <stdint.h>
 #include <cassert>
 
+struct FsGridCouplingInformation {
+   std::vector<int> externalRank; //!< MPI rank that each cell is being communicated to externally
+
+   void setCouplingSize(size_t totalStorageSize) {
+
+      // Set up coupling information to external grid (fill with MPI_PROC_NULL to begin with)
+      // Before actual grid coupling can be done, this information has to be filled in.
+      if(externalRank.size() != totalStorageSize) {
+         externalRank.resize(totalStorageSize);
+      }
+      for(uint i=0; i<externalRank.size(); i++) {
+         externalRank[i] = MPI_PROC_NULL;
+      }
+   }
+};
+
 /*! Simple cartesian, non-loadbalancing MPI Grid for use with the fieldsolver
  *
  * \param T datastructure containing the field in each cell which this grid manages
@@ -44,8 +60,8 @@ template <typename T, int stencil> class FsGrid {
        * \param MPI_Comm The MPI communicator this grid should use.
        * \param isPeriodic An array specifying, for each dimension, whether it is to be treated as periodic.
        */
-   FsGrid(std::array<int32_t,3> globalSize, MPI_Comm parent_comm, std::array<bool,3> isPeriodic)
-            : globalSize(globalSize) {
+   FsGrid(std::array<int32_t,3> globalSize, MPI_Comm parent_comm, std::array<bool,3> isPeriodic, FsGridCouplingInformation& coupling, int64_t tagIdIn = 0)
+            : globalSize(globalSize),coupling(coupling) {
          int status;
          int size;
 
@@ -185,7 +201,7 @@ template <typename T, int stencil> class FsGrid {
          }        
          
          data.resize(totalStorageSize);
-
+         coupling.setCouplingSize(totalStorageSize);
 
          MPI_Datatype mpiTypeT;
          MPI_Type_contiguous(sizeof(T), MPI_BYTE, &mpiTypeT);
@@ -293,14 +309,8 @@ template <typename T, int stencil> class FsGrid {
             if(neighbourSendType[i] != MPI_DATATYPE_NULL)
                MPI_Type_commit(&(neighbourSendType[i]));
          }
-         
-         // Also set up coupling information to external grid (fill with MPI_PROC_NULL to begin with)
-         // Before actual grid coupling can be done, this information has to be filled in.
-         externalRank.resize(totalStorageSize);
-         for(uint i=0; i<externalRank.size(); i++) {
-            externalRank[i] = MPI_PROC_NULL;
-         }
-         
+
+         tagId = tagIdIn;
       }
 
       /*! Finalize instead of destructor, as the MPI calls fail after the main program called MPI_Finalize().
@@ -408,18 +418,16 @@ template <typename T, int stencil> class FsGrid {
        *
        * \param cellsToCouple How many cells are going to be coupled
        */
-      void setupForGridCoupling() {
+      void setupForGridCoupling(int cellsToCouple) {
          int status;
          // Make sure we have sufficient buffer space to store our mpi
          // requests. Here only for receives, sends are done with blocking routine.
-         requests.resize(localSize[0]*localSize[1]*localSize[2]);
+         requests.resize(localSize[0]*localSize[1]*localSize[2]+cellsToCouple);
          numRequests=0;
 
-         //std::cout << "ExternalRank.size = " << externalRank.size() << std::endl;
-         
          // If previous coupling information was present, remove it.
-         for(uint i=0; i<externalRank.size(); i++) {
-            externalRank[i] = MPI_PROC_NULL;
+         for(uint i=0; i<coupling.externalRank.size(); i++) {
+            coupling.externalRank[i] = MPI_PROC_NULL;
          }
 
          for(int z=0; z<localSize[2]; z++) {
@@ -428,8 +436,8 @@ template <typename T, int stencil> class FsGrid {
                   // Calculate LocalID for this cell
                   LocalID thisCell = LocalIDForCoords(x,y,z);
                   assert(numRequests < requests.size());                  
-                  assert(thisCell < externalRank.size());
-                  status = MPI_Irecv(&externalRank[thisCell], 1, MPI_INT, MPI_ANY_SOURCE, thisCell, comm3d,
+                  assert(thisCell < coupling.externalRank.size());
+                  status = MPI_Irecv(&coupling.externalRank[thisCell], 1, MPI_INT, MPI_ANY_SOURCE, thisCell + tagId, comm3d,
                         &requests[numRequests++]);
                   if(status != MPI_SUCCESS) {
                      std::cerr << "Error setting up MPI Irecv in FsGrid::setupForGridCoupling" << std::endl;
@@ -453,7 +461,7 @@ template <typename T, int stencil> class FsGrid {
          // Determine Task and localID that this cell belongs to
          std::pair<int,LocalID> TaskLid = getTaskForGlobalID(id);
          int status;
-         status = MPI_Send(&cellRank, 1, MPI_INT, TaskLid.first, TaskLid.second, comm3d);
+         status = MPI_Isend(&cellRank, 1, MPI_INT, TaskLid.first, TaskLid.second + tagId, comm3d, &requests[numRequests++]);
          if(status != MPI_SUCCESS) {
             std::cerr << "Error setting up MPI Isend in FsGrid::setGridCoupling" << std::endl;
          }
@@ -487,8 +495,8 @@ template <typename T, int stencil> class FsGrid {
                   // Calculate LocalID for this cell
                   LocalID thisCell = LocalIDForCoords(x,y,z);
                   assert(numRequests < requests.size());
-                  status = MPI_Irecv(get(thisCell), sizeof(T), MPI_BYTE, externalRank[thisCell],
-                                     thisCell, comm3d, &requests[numRequests++]);
+                  status = MPI_Irecv(get(thisCell), sizeof(T), MPI_BYTE, coupling.externalRank[thisCell],
+                                     thisCell + tagId, comm3d, &requests[numRequests++]);
                   if(status != MPI_SUCCESS) {
                      std::cerr << "Error setting up MPI Irecv in FsGrid::setupForTransferIn" << std::endl;
                   }
@@ -571,7 +579,7 @@ template <typename T, int stencil> class FsGrid {
                   // Calculate LocalID for this cell
                   LocalID thisCell = LocalIDForCoords(x,y,z);
                   assert(numRequests < requests.size());
-                  status = MPI_Isend(get(thisCell), sizeof(T), MPI_BYTE, externalRank[thisCell], thisCell, comm3d,
+                  status = MPI_Isend(get(thisCell), sizeof(T), MPI_BYTE, coupling.externalRank[thisCell], thisCell + tagId, comm3d,
                         &requests[numRequests++]);
                   if(status != MPI_SUCCESS) {
                      std::cerr << "Error setting up MPI Isend in FsGrid::setupForTransferOut" << std::endl;
@@ -848,8 +856,9 @@ template <typename T, int stencil> class FsGrid {
       int rank; //!< This task's rank in the communicator
       std::vector<MPI_Request> requests;
       uint numRequests;
-   
-      std::vector<int> externalRank; //!< MPI rank that each cell is being communicated to externally
+      int64_t tagId;
+
+      FsGridCouplingInformation& coupling;
 
       std::array<int, 27> neighbour; //!< Tasks of the 26 neighbours (plus ourselves)
       std::vector<char> neighbour_index; //!< Lookup table from rank to index in the neighbour array
