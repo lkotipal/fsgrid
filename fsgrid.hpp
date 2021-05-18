@@ -881,7 +881,7 @@ template <typename T, int stencil> class FsGrid {
       }
 
       //! Helper function to optimize decomposition of this grid over the given number of tasks
-      void computeDomainDecomposition(const std::array<int, 3>& GlobalSize, int nProcs, std::array<int,3>& processDomainDecomposition) {
+      static void computeDomainDecomposition(const std::array<int, 3>& GlobalSize, int nProcs, std::array<int,3>& processDomainDecomposition) {
          std::array<double, 3> systemDim;
          std::array<double, 3 > processBox;
          double optimValue = std::numeric_limits<double>::max();
@@ -942,7 +942,7 @@ template <typename T, int stencil> class FsGrid {
       // \param ntasks Total number of tasks in this dimension
       // \param my_n This task's position in this dimension
       // \return Cell number at which this task's domains cells start (actual cells, not counting ghost cells)
-      int32_t calcLocalStart(int32_t globalCells, int ntasks, int my_n) {
+      static int32_t calcLocalStart(int32_t globalCells, int ntasks, int my_n) {
          int n_per_task = globalCells / ntasks;
          int remainder = globalCells % ntasks;
 
@@ -957,7 +957,7 @@ template <typename T, int stencil> class FsGrid {
       // \param ntasks Total number of tasks in this dimension
       // \param my_n This task's position in this dimension
       // \return Nmuber of cells for this task's local domain (actual cells, not counting ghost cells)
-      int32_t calcLocalSize(int32_t globalCells, int ntasks, int my_n) {
+      static int32_t calcLocalSize(int32_t globalCells, int ntasks, int my_n) {
          int n_per_task = globalCells/ntasks;
          int remainder = globalCells%ntasks;
          if(my_n < remainder) {
