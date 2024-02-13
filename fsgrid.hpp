@@ -545,6 +545,10 @@ template <typename T, int stencil> class FsGrid : public FsGridTools{
 
       friend void swap (FsGrid& first, FsGrid& second) noexcept {
          using std::swap;
+         swap(first.DX, second.DX);
+         swap(first.DY, second.DY);
+         swap(first.DZ, second.DZ);
+         swap(first.physicalGlobalStart, second.physicalGlobalStart);
          swap(first.rank, second.rank);
          swap(first.requests, second.requests);
          swap(first.numRequests, second.numRequests);
@@ -567,6 +571,10 @@ template <typename T, int stencil> class FsGrid : public FsGridTools{
       // Copy constructor
       FsGrid(const FsGrid& other) : 
          rank {other.rank}, 
+         DX {other.DX},
+         DY {other.DY},
+         DZ {other.DZ},
+         physicalGlobalStart {other.physicalGlobalStart},
          requests {}, 
          numRequests {0}, 
          neighbour {other.neighbour},
@@ -1091,12 +1099,6 @@ template <typename T, int stencil> class FsGrid : public FsGridTools{
          return &data[id];
       }
 
-      /*! Physical grid spacing and physical coordinate space start.
-       * TODO: Should this be private and have accesor-functions?
-       */
-      double DX,DY,DZ;
-      std::array<double,3> physicalGlobalStart;
-
       /*! Get the physical coordinates in the global simulation space for
        * the given cell.
        *
@@ -1170,6 +1172,12 @@ template <typename T, int stencil> class FsGrid : public FsGridTools{
       std::array<Task_t, 3>& getDecomposition(){
          return ntasksPerDim;
       }
+
+      /*! Physical grid spacing and physical coordinate space start.
+       * TODO: Should this be private and have accesor-functions?
+       */
+      double DX,DY,DZ;
+      std::array<double,3> physicalGlobalStart;
 
    private:
       //! MPI Cartesian communicator used in this grid
