@@ -602,11 +602,7 @@ template <typename T, int stencil> class FsGrid : public FsGridTools{
       }
 
       // Copy assignment
-      FsGrid& operator=(FsGrid other) {
-         using std::swap;
-         swap(*this, other);
-         return *this;
-      }
+      FsGrid& operator=(FsGrid other) = delete;
 
       // Move assignment
       FsGrid& operator=(FsGrid&& other) noexcept {
