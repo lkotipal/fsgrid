@@ -512,17 +512,107 @@ template <typename T, int stencil> class FsGrid : public FsGridTools{
          this->data = other.getData(); // Copy assignment
       }
 
-      /*! Finalize instead of destructor, as the MPI calls fail after the main program called MPI_Finalize().
-       *  Cleans up the cartesian communicator
+      /*! 
+       *  MPI calls fail after the main program called MPI_Finalize(),
+       *  so this can be used instead of the destructor
+       *  Cleans up the cartesian communicator and datatypes
        */
-      void finalize() {
-         for(int i=0;i<27;i++){
-            if(neighbourReceiveType[i] != MPI_DATATYPE_NULL)
-               MPI_Type_free(&(neighbourReceiveType[i]));
-            if(neighbourSendType[i] != MPI_DATATYPE_NULL)
-               MPI_Type_free(&(neighbourSendType[i]));
+      void finalize() noexcept {
+         if (comm3d != MPI_COMM_NULL) {
+            MPI_Comm_free(&comm3d);
+            comm3d = MPI_COMM_NULL;
          }
-         MPI_Comm_free(&comm3d);
+         for (auto& type : neighbourReceiveType) {
+            if (type != MPI_DATATYPE_NULL) {
+               MPI_Type_free(&type);
+               type = MPI_DATATYPE_NULL;
+            }
+         }
+         for (auto& type : neighbourSendType) {
+            if (type != MPI_DATATYPE_NULL) {
+               MPI_Type_free(&type);
+               type = MPI_DATATYPE_NULL;
+            }
+         }
+      }
+
+      /*!
+       *  If finalize() isn't called manually, object should be destroyed before MPI finalization
+       */
+      ~FsGrid() {
+         finalize();
+      }
+
+      friend void swap (FsGrid& first, FsGrid& second) noexcept {
+         using std::swap;
+         swap(first.rank, second.rank);
+         swap(first.requests, second.requests);
+         swap(first.numRequests, second.numRequests);
+         swap(first.neighbour, second.neighbour);
+         swap(first.neighbour_index, second.neighbour_index);
+         swap(first.ntasksPerDim, second.ntasksPerDim);
+         swap(first.taskPosition, second.taskPosition);
+         swap(first.periodic, second.periodic);
+         swap(first.globalSize, second.globalSize);
+         swap(first.localSize, second.localSize);
+         swap(first.storageSize, second.storageSize);
+         swap(first.localStart, second.localStart);
+         swap(first.coupling, second.coupling);
+         swap(first.data, second.data);
+         swap(first.comm3d, second.comm3d);
+         swap(first.neighbourSendType, second.neighbourSendType);
+         swap(first.neighbourReceiveType, second.neighbourReceiveType);
+      }
+
+      // Copy constructor
+      FsGrid(const FsGrid& other) : 
+         rank {other.rank}, 
+         requests {}, 
+         numRequests {0}, 
+         neighbour {other.neighbour},
+         neighbour_index {other.neighbour_index},
+         ntasksPerDim {other.ntasksPerDim},
+         taskPosition {other.taskPosition},
+         periodic {other.periodic},
+         globalSize {other.globalSize},
+         localSize {other.localSize},
+         storageSize {other.storageSize},
+         localStart {other.localStart},
+         coupling {other.coupling},
+         data {other.data}
+      {
+         MPI_Comm_dup(other.comm3d, &comm3d);
+         for (int i = 0; neighbourSendType.size(); ++i) {
+            MPI_Type_dup(other.neighbourSendType[i], neighbourSendType.data() + i);
+            MPI_Type_dup(other.neighbourReceiveType[i], neighbourReceiveType.data() + i);
+         }
+      }
+
+      // Move constructor
+      // We don't have a default constructor, so just set the MPI stuff NULL
+      FsGrid(FsGrid&& other) noexcept : 
+         comm3d {MPI_COMM_NULL}
+      {
+         // NULL all the MPI stuff so they won't get freed if destroyed
+         neighbourSendType.fill(MPI_DATATYPE_NULL);
+         neighbourReceiveType.fill(MPI_DATATYPE_NULL);
+
+         using std::swap;
+         swap(*this, other);
+      }
+
+      // Copy assignment
+      FsGrid& operator=(FsGrid other) {
+         using std::swap;
+         swap(*this, other);
+         return *this;
+      }
+
+      // Move assignment
+      FsGrid& operator=(FsGrid&& other) noexcept {
+         using std::swap;
+         swap(*this, other);
+         return *this;
       }
 
       /*! Returns the task responsible, and its localID for handling the cell with the given GlobalID
