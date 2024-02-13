@@ -570,6 +570,7 @@ template <typename T, int stencil> class FsGrid : public FsGridTools{
 
       // Copy constructor
       FsGrid(const FsGrid& other) : 
+         comm3d {MPI_COMM_NULL},
          rank {other.rank}, 
          DX {other.DX},
          DY {other.DY},
@@ -589,10 +590,19 @@ template <typename T, int stencil> class FsGrid : public FsGridTools{
          coupling {other.coupling},
          data {other.data}
       {
-         MPI_Comm_dup(other.comm3d, &comm3d);
+         if (other.comm3d != MPI_COMM_NULL) {
+            MPI_Comm_dup(other.comm3d, &comm3d);
+         }
+
+         neighbourSendType.fill(MPI_DATATYPE_NULL);
+         neighbourReceiveType.fill(MPI_DATATYPE_NULL);
          for (int i = 0; neighbourSendType.size(); ++i) {
-            MPI_Type_dup(other.neighbourSendType[i], neighbourSendType.data() + i);
-            MPI_Type_dup(other.neighbourReceiveType[i], neighbourReceiveType.data() + i);
+            if (other.neighbourSendType[i] != MPI_DATATYPE_NULL) {
+               MPI_Type_dup(other.neighbourSendType[i], neighbourSendType.data() + i);
+            }
+            if (other.neighbourReceiveType[i] != MPI_DATATYPE_NULL) {
+               MPI_Type_dup(other.neighbourReceiveType[i], neighbourReceiveType.data() + i);
+            }
          }
       }
 
