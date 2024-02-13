@@ -545,6 +545,9 @@ template <typename T, int stencil> class FsGrid : public FsGridTools{
 
       friend void swap (FsGrid& first, FsGrid& second) noexcept {
          using std::swap;
+         swap(first.comm3d, second.comm3d);
+         swap(first.neighbourSendType, second.neighbourSendType);
+         swap(first.neighbourReceiveType, second.neighbourReceiveType);
          swap(first.DX, second.DX);
          swap(first.DY, second.DY);
          swap(first.DZ, second.DZ);
@@ -563,14 +566,13 @@ template <typename T, int stencil> class FsGrid : public FsGridTools{
          swap(first.localStart, second.localStart);
          swap(first.coupling, second.coupling);
          swap(first.data, second.data);
-         swap(first.comm3d, second.comm3d);
-         swap(first.neighbourSendType, second.neighbourSendType);
-         swap(first.neighbourReceiveType, second.neighbourReceiveType);
       }
 
       // Copy constructor
       FsGrid(const FsGrid& other) : 
          comm3d {MPI_COMM_NULL},
+         neighbourSendType {},
+         neighbourReceiveType {},
          rank {other.rank}, 
          DX {other.DX},
          DY {other.DY},
@@ -596,7 +598,7 @@ template <typename T, int stencil> class FsGrid : public FsGridTools{
 
          neighbourSendType.fill(MPI_DATATYPE_NULL);
          neighbourReceiveType.fill(MPI_DATATYPE_NULL);
-         for (int i = 0; neighbourSendType.size(); ++i) {
+         for (int i = 0; i < neighbourSendType.size(); ++i) {
             if (other.neighbourSendType[i] != MPI_DATATYPE_NULL) {
                MPI_Type_dup(other.neighbourSendType[i], neighbourSendType.data() + i);
             }
@@ -609,7 +611,9 @@ template <typename T, int stencil> class FsGrid : public FsGridTools{
       // Move constructor
       // We don't have a default constructor, so just set the MPI stuff NULL
       FsGrid(FsGrid&& other) noexcept : 
-         comm3d {MPI_COMM_NULL}
+         comm3d {MPI_COMM_NULL},
+         neighbourSendType {},
+         neighbourReceiveType {}
       {
          // NULL all the MPI stuff so they won't get freed if destroyed
          neighbourSendType.fill(MPI_DATATYPE_NULL);
