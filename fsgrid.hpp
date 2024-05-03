@@ -656,13 +656,14 @@ template <typename T, int stencil> class FsGrid : public FsGridTools{
 
       friend void swap (FsGrid& first, FsGrid& second) noexcept {
          using std::swap;
-         swap(first.comm3d, second.comm3d);
-         swap(first.neighbourSendType, second.neighbourSendType);
-         swap(first.neighbourReceiveType, second.neighbourReceiveType);
          swap(first.DX, second.DX);
          swap(first.DY, second.DY);
          swap(first.DZ, second.DZ);
          swap(first.physicalGlobalStart, second.physicalGlobalStart);
+         swap(first.comm1d, second.comm1d);
+         swap(first.comm1d_aux, second.comm1d_aux);
+         swap(first.comm3d, second.comm3d);
+         swap(first.comm3d_aux, second.comm3d_aux);
          swap(first.rank, second.rank);
          swap(first.requests, second.requests);
          swap(first.numRequests, second.numRequests);
@@ -676,19 +677,24 @@ template <typename T, int stencil> class FsGrid : public FsGridTools{
          swap(first.storageSize, second.storageSize);
          swap(first.localStart, second.localStart);
          swap(first.coupling, second.coupling);
+         swap(first.neighbourSendType, second.neighbourSendType);
+         swap(first.neighbourReceiveType, second.neighbourReceiveType);
          swap(first.data, second.data);
       }
 
       // Copy constructor
       FsGrid(const FsGrid& other) : 
-         comm3d {MPI_COMM_NULL},
-         neighbourSendType {},
-         neighbourReceiveType {},
-         rank {other.rank}, 
          DX {other.DX},
          DY {other.DY},
          DZ {other.DZ},
          physicalGlobalStart {other.physicalGlobalStart},
+         comm1d {MPI_COMM_NULL},
+         comm1d_aux {MPI_COMM_NULL},
+         comm3d {MPI_COMM_NULL},
+         comm3d_aux {MPI_COMM_NULL},
+         neighbourSendType {},
+         neighbourReceiveType {},
+         rank {other.rank}, 
          requests {}, 
          numRequests {0}, 
          neighbour {other.neighbour},
@@ -722,7 +728,10 @@ template <typename T, int stencil> class FsGrid : public FsGridTools{
       // Move constructor
       // We don't have a default constructor, so just set the MPI stuff NULL
       FsGrid(FsGrid&& other) noexcept : 
+         comm1d {MPI_COMM_NULL},
+         comm1d_aux {MPI_COMM_NULL},
          comm3d {MPI_COMM_NULL},
+         comm3d_aux {MPI_COMM_NULL},
          neighbourSendType {},
          neighbourReceiveType {}
       {
