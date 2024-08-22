@@ -1,7 +1,5 @@
 #pragma once
 
-// clang-format off
-
 /*
   Copyright (C) 2016 Finnish Meteorological Institute
   Copyright (C) 2016-2024 CSC -IT Center for Science 
@@ -1044,5 +1042,3 @@ template <typename T, int stencil> class FsGrid : public FsGridTools{
       //! Actual storage of field data
       std::vector<T> data;
 };
-
-// clang-format on
