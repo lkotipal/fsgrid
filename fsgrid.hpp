@@ -219,7 +219,8 @@ template <typename T, int stencil> class FsGrid : public FsGridTools{
        * \param MPI_Comm The MPI communicator this grid should use.
        * \param isPeriodic An array specifying, for each dimension, whether it is to be treated as periodic.
        */
-   FsGrid(std::array<FsSize_t,3> globalSize, MPI_Comm parent_comm, std::array<bool,3> isPeriodic)
+   FsGrid(std::array<FsSize_t,3> globalSize, MPI_Comm parent_comm, std::array<bool,3> isPeriodic,
+           const std::array<Task_t, 3>& decomposition = {0,0,0}, bool verbose = false)
             : globalSize(globalSize) {
          int status;
          int size;
