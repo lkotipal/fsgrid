@@ -744,6 +744,8 @@ template <typename T, int stencil> class FsGrid : public FsGridTools{
       }
 
       // Copy assignment
+      // Canonical copy assign is construct to temp and swap, but this would result in an extra allocation of the entire grid
+      // Copy assignment is currently not used in Vlasiator, so the operator is deleted as any use is likely either erroneous or just a bad idea
       FsGrid& operator=(FsGrid other) = delete;
 
       // Move assignment
