@@ -666,8 +666,6 @@ template <typename T, int stencil> class FsGrid : public FsGridTools{
          comm1d_aux {MPI_COMM_NULL},
          comm3d {MPI_COMM_NULL},
          comm3d_aux {MPI_COMM_NULL},
-         neighbourSendType {},
-         neighbourReceiveType {},
          rank {other.rank}, 
          requests {}, 
          numRequests {0}, 
@@ -680,6 +678,8 @@ template <typename T, int stencil> class FsGrid : public FsGridTools{
          localSize {other.localSize},
          storageSize {other.storageSize},
          localStart {other.localStart},
+         neighbourSendType {},
+         neighbourReceiveType {},
          data {other.data}
       {
          if (other.comm3d != MPI_COMM_NULL) {
@@ -688,7 +688,7 @@ template <typename T, int stencil> class FsGrid : public FsGridTools{
 
          neighbourSendType.fill(MPI_DATATYPE_NULL);
          neighbourReceiveType.fill(MPI_DATATYPE_NULL);
-         for (int i = 0; i < neighbourSendType.size(); ++i) {
+         for (size_t i = 0; i < neighbourSendType.size(); ++i) {
             if (other.neighbourSendType[i] != MPI_DATATYPE_NULL) {
                MPI_Type_dup(other.neighbourSendType[i], neighbourSendType.data() + i);
             }
