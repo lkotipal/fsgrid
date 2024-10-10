@@ -651,7 +651,6 @@ template <typename T, int stencil> class FsGrid : public FsGridTools{
          swap(first.localSize, second.localSize);
          swap(first.storageSize, second.storageSize);
          swap(first.localStart, second.localStart);
-         swap(first.coupling, second.coupling);
          swap(first.neighbourSendType, second.neighbourSendType);
          swap(first.neighbourReceiveType, second.neighbourReceiveType);
          swap(first.data, second.data);
@@ -681,7 +680,6 @@ template <typename T, int stencil> class FsGrid : public FsGridTools{
          localSize {other.localSize},
          storageSize {other.storageSize},
          localStart {other.localStart},
-         coupling {other.coupling},
          data {other.data}
       {
          if (other.comm3d != MPI_COMM_NULL) {
